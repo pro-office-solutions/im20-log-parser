@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IM20 Array to JSON</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2rem;
+        max-width: 900px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      button {
+        margin-top: 0.75rem;
+        padding: 0.5rem 0.9rem;
+      }
+      pre {
+        margin-top: 1rem;
+        background: #111827;
+        color: #e5e7eb;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow: auto;
+      }
+      .error {
+        color: #b91c1c;
+        margin-top: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>IM20 Array to JSON</h1>
+    <p>Paste an array of bytes (example: <code>[2, 48, 49, 3]</code>), then convert.</p>
+    <textarea id="input" placeholder="[2, 48, 49, 3]"></textarea>
+    <br />
+    <button id="convert" type="button">Convert to JSON</button>
+    <div id="error" class="error"></div>
+    <pre id="output">{}</pre>
+
+    <script>
+      function parseByteInput(text) {
+        const trimmed = text.trim();
+        if (!trimmed) {
+          throw new Error("Please paste an array first.");
+        }
+
+        if (trimmed.startsWith("[")) {
+          return JSON.parse(trimmed);
+        }
+
+        const matches = trimmed.match(/-?\d+/g);
+        if (!matches) {
+          throw new Error("Unable to read numbers from input.");
+        }
+
+        return matches.map(Number);
+      }
+
+      const inputEl = document.getElementById("input");
+      const outputEl = document.getElementById("output");
+      const errorEl = document.getElementById("error");
+      const buttonEl = document.getElementById("convert");
+
+      buttonEl.addEventListener("click", async () => {
+        outputEl.textContent = "{}";
+        errorEl.textContent = "";
+
+        try {
+          const bytes = parseByteInput(inputEl.value);
+          const response = await fetch("/api/parse", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ bytes })
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to parse.");
+          }
+
+          outputEl.textContent = JSON.stringify(data, null, 2);
+        } catch (error) {
+          errorEl.textContent = error.message || "Unexpected error.";
+        }
+      });
+    </script>
+  </body>
+</html>
