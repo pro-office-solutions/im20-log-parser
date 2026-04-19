@@ -1,93 +1,396 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IM20 Array to JSON</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 2rem;
-        max-width: 900px;
-      }
-      textarea {
-        width: 100%;
-        min-height: 180px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      }
-      button {
-        margin-top: 0.75rem;
-        padding: 0.5rem 0.9rem;
-      }
-      pre {
-        margin-top: 1rem;
-        background: #111827;
-        color: #e5e7eb;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        overflow: auto;
-      }
-      .error {
-        color: #b91c1c;
-        margin-top: 0.75rem;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>IM20 Array to JSON</h1>
-    <p>Paste an array of bytes (example: <code>[2, 48, 49, 3]</code>), then convert.</p>
-    <textarea id="input" placeholder="[2, 48, 49, 3]"></textarea>
-    <br />
-    <button id="convert" type="button">Convert to JSON</button>
-    <div id="error" class="error"></div>
-    <pre id="output">{}</pre>
 
-    <script>
-      function parseByteInput(text) {
-        const trimmed = text.trim();
-        if (!trimmed) {
-          throw new Error("Please paste an array first.");
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IM20 Array to JSON</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    .page {
+      /* max-width: 1200px; */
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 70% 30%;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    button {
+      margin-top: 0.75rem;
+      padding: 0.5rem 0.9rem;
+    }
+
+    #convert[disabled] {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    pre {
+      margin-top: 1rem;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow: auto;
+    }
+
+    .history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .history-header h2 {
+      margin: 0;
+    }
+
+    .clear-btn {
+      margin-top: 0;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+
+    .clear-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .history-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+
+    .history-item {
+      width: 100%;
+      text-align: left;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      border-radius: 0.5rem;
+      padding: 0.65rem;
+      cursor: pointer;
+      margin-top: 0;
+    }
+
+    .history-item:hover {
+      background: #eef2ff;
+      border-color: #a5b4fc;
+    }
+
+    .history-remove {
+      margin-top: 0;
+      min-width: 2rem;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      color: #991b1b;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .history-remove:hover {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .history-title {
+      display: block;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .history-meta {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    .history-empty {
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    .error {
+      color: #b91c1c;
+      margin-top: 0.75rem;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="layout">
+      <section class="card">
+        <h1>IM20 Array to JSON</h1>
+        <p>Paste an array of bytes (example: <code>[2, 48, 49, 3]</code>), then convert.</p>
+        <textarea id="input" placeholder="[2, 48, 49, 3]"></textarea>
+        <br />
+        <button id="convert" type="button">Convert to JSON</button>
+        <div id="error" class="error"></div>
+        <pre id="output">{}</pre>
+      </section>
+
+      <aside class="card">
+        <div class="history-header">
+          <h2>History</h2>
+          <button id="clearHistory" type="button" class="clear-btn">Clear All</button>
+        </div>
+        <ul id="historyList" class="history-list"></ul>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const HISTORY_STORAGE_KEY = "im20_parse_history_v1";
+    const MAX_HISTORY_ITEMS = 30;
+    const PARSE_TIMEOUT_MS = 15000;
+
+    function parseByteInput(text) {
+      const trimmed = text.trim();
+      if (!trimmed) {
+        throw new Error("Please paste an array first.");
+      }
+
+      if (trimmed.startsWith("[")) {
+        return JSON.parse(trimmed);
+      }
+
+      const matches = trimmed.match(/-?\d+/g);
+      if (!matches) {
+        throw new Error("Unable to read numbers from input.");
+      }
+
+      return matches.map(Number);
+    }
+
+    const inputEl = document.getElementById("input");
+    const outputEl = document.getElementById("output");
+    const errorEl = document.getElementById("error");
+    const buttonEl = document.getElementById("convert");
+    const historyListEl = document.getElementById("historyList");
+    const clearHistoryEl = document.getElementById("clearHistory");
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (!raw) {
+          return [];
+        }
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistory(history) {
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+    }
+
+    function addHistoryEntry(bytes, output) {
+      const history = loadHistory();
+      history.unshift({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        createdAt: new Date().toISOString(),
+        bytes,
+        output
+      });
+      if (history.length > MAX_HISTORY_ITEMS) {
+        history.length = MAX_HISTORY_ITEMS;
+      }
+      saveHistory(history);
+    }
+
+    function formatHistoryLabel(entry) {
+      const date = new Date(entry.createdAt);
+      const dateText = Number.isNaN(date.getTime()) ? "Unknown time" : date.toLocaleString();
+      const size = Array.isArray(entry.bytes) ? entry.bytes.length : 0;
+      return { title: `Parse ${size} bytes`, meta: dateText };
+    }
+
+    function showHistoryEntry(entry) {
+      outputEl.textContent = JSON.stringify(entry.output, null, 2);
+      if (Array.isArray(entry.bytes)) {
+        inputEl.value = JSON.stringify(entry.bytes);
+      }
+      errorEl.textContent = "";
+    }
+
+    function renderHistory() {
+      const history = loadHistory();
+      historyListEl.textContent = "";
+
+      if (history.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "history-empty";
+        empty.textContent = "No history yet.";
+        historyListEl.appendChild(empty);
+        return;
+      }
+
+      for (const entry of history) {
+        const li = document.createElement("li");
+        const row = document.createElement("div");
+        const button = document.createElement("button");
+        const removeButton = document.createElement("button");
+        const label = formatHistoryLabel(entry);
+        const title = document.createElement("span");
+        const meta = document.createElement("span");
+
+        row.className = "history-row";
+        button.type = "button";
+        button.className = "history-item";
+        button.dataset.historyId = entry.id;
+
+        removeButton.type = "button";
+        removeButton.className = "history-remove";
+        removeButton.dataset.removeHistoryId = entry.id;
+        removeButton.setAttribute("aria-label", "Remove history item");
+        removeButton.textContent = "X";
+
+        title.className = "history-title";
+        title.textContent = label.title;
+        meta.className = "history-meta";
+        meta.textContent = label.meta;
+
+        button.appendChild(title);
+        button.appendChild(meta);
+        row.appendChild(button);
+        row.appendChild(removeButton);
+        li.appendChild(row);
+        historyListEl.appendChild(li);
+      }
+    }
+
+    historyListEl.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const removeButton = event.target.closest("button[data-remove-history-id]");
+      if (removeButton) {
+        const removeId = removeButton.dataset.removeHistoryId;
+        const history = loadHistory();
+        const next = history.filter((item) => item.id !== removeId);
+        saveHistory(next);
+        renderHistory();
+        return;
+      }
+
+      const button = event.target.closest("button[data-history-id]");
+      if (!button) {
+        return;
+      }
+
+      const historyId = button.dataset.historyId;
+      const history = loadHistory();
+      const entry = history.find((item) => item.id === historyId);
+      if (!entry) {
+        return;
+      }
+
+      showHistoryEntry(entry);
+    });
+
+    clearHistoryEl.addEventListener("click", () => {
+      const hasItems = loadHistory().length > 0;
+      if (!hasItems) {
+        return;
+      }
+
+      const confirmed = window.confirm("Clear all history items?");
+      if (!confirmed) {
+        return;
+      }
+
+      saveHistory([]);
+      renderHistory();
+    });
+
+    buttonEl.addEventListener("click", async () => {
+      outputEl.textContent = "{}";
+      errorEl.textContent = "";
+      const originalButtonText = buttonEl.textContent;
+      buttonEl.disabled = true;
+      buttonEl.textContent = "Converting...";
+
+      try {
+        const bytes = parseByteInput(inputEl.value);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), PARSE_TIMEOUT_MS);
+
+        const response = await fetch("/api/parse", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ bytes }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to parse.");
         }
 
-        if (trimmed.startsWith("[")) {
-          return JSON.parse(trimmed);
-        }
-
-        const matches = trimmed.match(/-?\d+/g);
-        if (!matches) {
-          throw new Error("Unable to read numbers from input.");
-        }
-
-        return matches.map(Number);
-      }
-
-      const inputEl = document.getElementById("input");
-      const outputEl = document.getElementById("output");
-      const errorEl = document.getElementById("error");
-      const buttonEl = document.getElementById("convert");
-
-      buttonEl.addEventListener("click", async () => {
-        outputEl.textContent = "{}";
-        errorEl.textContent = "";
-
-        try {
-          const bytes = parseByteInput(inputEl.value);
-          const response = await fetch("/api/parse", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ bytes })
-          });
-
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.error || "Failed to parse.");
-          }
-
-          outputEl.textContent = JSON.stringify(data, null, 2);
-        } catch (error) {
+        addHistoryEntry(bytes, data);
+        renderHistory();
+        outputEl.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          errorEl.textContent = "Request timed out. Please try again.";
+        } else {
           errorEl.textContent = error.message || "Unexpected error.";
         }
-      });
-    </script>
-  </body>
+      } finally {
+        buttonEl.disabled = false;
+        buttonEl.textContent = originalButtonText;
+      }
+    });
+
+    renderHistory();
+  </script>
+</body>
+
 </html>
