@@ -26,7 +26,7 @@ export function parseIm20(bytes) {
     const pos = str.indexOf(emvAppId);
     if (pos !== -1) {
       const afterAid = str.slice(pos + emvAppId.length);
-      const nameMatch = afterAid.match(/\s{2,}([A-Z ]{10,})\s+\d{2}/);
+      const nameMatch = afterAid.match(/\s{2,}([A-Z][A-Z ]{9,})\s+\d{2}/);
       if (nameMatch) {
         cardholderName = nameMatch[1].trim();
       }
@@ -34,9 +34,9 @@ export function parseIm20(bytes) {
   }
 
   const crypto = firstMatch(str, /A000000\d{6,}([0-9A-F]{16})/);
-  const tailMatch = str.match(/\s(\d{2})([A-Za-z ]+)\s*$/);
+  const tailMatch = str.match(/\s(\d{2})([A-Za-z][A-Za-z ]*?)?\s*[^A-Za-z]*$/);
   const cardType = tailMatch ? tailMatch[1] : null;
-  const cardName = tailMatch && tailMatch[2].trim() ? tailMatch[2].trim() : null;
+  const cardName = tailMatch && tailMatch[2] ? tailMatch[2].trim() || null : null;
 
   return {
     str,
